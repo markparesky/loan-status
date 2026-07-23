@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Loan Status</title>
+<style>
+  :root {
+    --navy: #1F4E78; --navy-light: #e8f0f9;
+    --bg: #f6f6f4; --card: #ffffff; --border: rgba(0,0,0,0.10);
+    --text: #1a1a1a; --text2: #5f5e5a; --text3: #92918b;
+    --green-bg: #eaf3de; --green: #3f6b12;
+    --amber-bg: #faeeda; --amber: #8a5410;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 19px; font-weight: 600; margin: 0 0 2px; color: var(--navy); }
+  .sub { font-size: 12.5px; color: var(--text3); margin-bottom: 18px; }
+
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: 22px 20px; margin-bottom: 14px; }
+  .hero .label { font-size: 13px; color: var(--text2); }
+  .hero .big { font-size: 38px; font-weight: 650; line-height: 1.15; letter-spacing: -0.5px; margin: 6px 0 2px; }
+  .hero .duedate { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
+  .breakline { display: flex; justify-content: space-between; font-size: 13.5px; padding: 7px 0;
+               border-top: 1px solid var(--border); }
+  .breakline .l { color: var(--text2); }
+  .breakline .r { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .check { color: var(--green); font-weight: 600; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px; }
+  .pill.ok { background: var(--green-bg); color: var(--green); }
+  .pill.warn { background: var(--amber-bg); color: var(--amber); }
+
+  .balcard { background: var(--navy); color: #fff; border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+  .balcard .k { font-size: 12.5px; opacity: 0.85; }
+  .balcard .v { font-size: 30px; font-weight: 650; letter-spacing: -0.5px; margin: 4px 0 10px; }
+  .bar { height: 8px; background: rgba(255,255,255,0.25); border-radius: 4px; overflow: hidden; }
+  .bar > div { height: 100%; background: #9fc57a; border-radius: 4px; }
+  .barlabel { display: flex; justify-content: space-between; font-size: 11.5px; opacity: 0.9; margin-top: 6px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card .k { font-size: 11.5px; color: var(--text2); margin-bottom: 4px; }
+  .card .v { font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .card .s { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  h2 { font-size: 13.5px; font-weight: 600; color: var(--text2); margin: 24px 0 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .loanrow { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+             padding: 10px 14px; margin-bottom: 7px; font-size: 13.5px;
+             display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .loanrow .desc { color: var(--text2); font-size: 12.5px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: var(--card); }
+  .tablebox { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; overflow-x: auto; }
+  th { text-align: right; padding: 9px 10px; background: var(--navy); color: #fff; font-weight: 600; font-size: 11.5px; white-space: nowrap; }
+  th:first-child { text-align: left; }
+  td { text-align: right; padding: 8px 10px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td:first-child { text-align: left; color: var(--text2); }
+  tr.now td { background: var(--navy-light); font-weight: 600; }
+  tr.proj td { color: var(--text3); font-style: italic; }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 9px; margin-left: 6px; }
+  .tag.p { background: var(--navy-light); color: var(--navy); }
+  .tag.i { background: var(--green-bg); color: var(--green); }
+  .memo { font-size: 11px; color: var(--text3); font-style: normal; }
+
+  .foot { font-size: 11.5px; color: var(--text3); margin-top: 22px; text-align: center; line-height: 1.7; }
+  .foot a { color: var(--navy); }
+  .err { background: #fcebeb; color: #791f1f; border-radius: 10px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 12px; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; font-size: 12px; color: var(--navy); }
+  details input { width: 100%; padding: 9px; font-size: 12.5px; border: 1px solid var(--border); border-radius: 8px; margin: 8px 0; }
+  details button { padding: 8px 14px; font-size: 13px; font-weight: 600; background: var(--navy); color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+
+  /* Admin */
+  .adminbar { position: fixed; bottom: 14px; right: 14px; }
+  .adminbtn { background: var(--navy); color: #fff; border: none; border-radius: 24px; padding: 10px 16px;
+              font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+  .badge { background: #d97706; color: #fff; border-radius: 10px; font-size: 11px; padding: 1px 7px; margin-left: 6px; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: flex-start;
+           justify-content: center; padding: 30px 14px; z-index: 50; overflow-y: auto; }
+  .panel { background: var(--card); border-radius: var(--radius); padding: 20px; max-width: 460px; width: 100%; }
+  .panel h3 { margin: 0 0 12px; font-size: 16px; color: var(--navy); }
+  .panel label { display: block; font-size: 12px; color: var(--text2); margin: 10px 0 4px; }
+  .panel input { width: 100%; padding: 9px 10px; font-size: 14px; border: 1px solid var(--border); border-radius: 8px; }
+  .panel .btnrow { display: flex; gap: 8px; margin-top: 16px; }
+  .panel button { flex: 1; padding: 10px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+  .btn1 { background: var(--navy); color: #fff; border: none; }
+  .btn2 { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+  .pend { background: var(--amber-bg); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; margin: 6px 0;
+          display: flex; justify-content: space-between; align-items: center; }
+  .pend button { background: none; border: none; color: #b91c1c; cursor: pointer; font-size: 12px; padding: 2px 6px; }
+  .pubbox { background: var(--navy-light); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--text2); margin-top: 12px; line-height: 1.5; }
+  textarea.blk { width: 100%; height: 110px; font-family: monospace; font-size: 10.5px; margin-top: 6px; }
+
+  .planbar { background: var(--navy); color: #fff; border-radius: var(--radius);
+             padding: 12px 16px; margin: 26px 0 10px; font-size: 13.5px; font-weight: 600;
+             text-transform: uppercase; letter-spacing: 0.04em; }
+  .planbar .s { display: block; font-weight: 400; text-transform: none; letter-spacing: 0;
+                font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .cellmemo { display: block; font-size: 10.5px; color: var(--text3); font-weight: 400; }
+  td .ok { color: var(--green); font-weight: 600; }
+  td .behind { color: var(--amber); font-weight: 600; }
+  td .ahead { color: var(--green); font-size: 10.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Loan Status</h1>
+  <div class="sub" id="asof"></div>
+  <div id="app"></div>
+  <div class="foot">
+    <span id="srcinfo"></span> · <a href="#" onclick="location.reload();return false;">Refresh</a>
+    <details>
+      <summary>Connect live Google Sheet (optional)</summary>
+      <div style="text-align:left; font-size:12px; color:var(--text2); margin-top:6px">
+        Publish the Bank Transactions tab as CSV (File → Share → Publish to web), paste the link:
+      </div>
+      <input id="srcInput" placeholder="https://docs.google.com/spreadsheets/…output=csv" />
+      <button onclick="saveSrc()">Connect</button>
+      <a href="#" onclick="resetSrc();return false;" style="margin-left:10px;font-size:12px">Disconnect</a>
+    </details>
+  </div>
+</div>
+
+
+<div class="adminbar"><button class="adminbtn" onclick="adminOpen()">Admin<span id="pendBadge" class="badge" style="display:none"></span></button></div>
+<div id="adminModal" style="display:none"></div>
+<script>
+"use strict";
+
+// ================= EMBEDDED DATA (auto-used when no live feed is connected) =================
+/*DATA-START*/
+const EMBEDDED_AS_OF = "July 22, 2026";
+const EMBEDDED = {
+  loans: [
+    ["2025-07-25", 25000, "Roof repairs"],
+    ["2025-12-10", 18000, "Kitchen repairs / equipment"],
+    ["2026-02-24", 22000, "Ecuador land registration taxes"],
+  ],
+  txns: [
+    ["2025-08-01", 0, 20.83, "Interest — July stub"],
+    ["2025-09-03", 0, 104.17, "Interest"],
+    ["2025-10-02", 0, 104.17, "Interest"],
+    ["2025-11-05", 0, 104.17, "Interest"],
+    ["2025-12-02", 0, 104.17, "Interest"],
+    ["2025-12-16", 1000, 0, "Principal"],
+    ["2026-01-05", 900, 0, "Principal"],
+    ["2026-01-05", 100, 104, "Principal + interest"],
+    ["2026-01-29", 1200, 0, "Principal"],
+    ["2026-01-31", 1800, 0, "Principal (cash)"],
+    ["2026-02-04", 0, 162, "Interest"],
+    ["2026-02-27", 3000, 0, "Principal"],
+    ["2026-03-31", 2000, 0, "Principal"],
+    ["2026-04-15", 1000, 0, "Principal"],
+    ["2026-04-23", 1000, 0, "Principal"],
+    ["2026-04-23", 2000, 0, "Principal"],
+    ["2026-05-05", 0, 411.25, "Interest (April)"],
+    ["2026-06-04", 3000, 0, "Principal — Zelle"],
+    ["2026-06-07", 0, 500, "Interest — Zelle"],
+    ["2026-07-02", 3000, 0, "Principal — Zelle"],
+  ],
+};
+/*DATA-END*/
+
+// ================= LOAN TERMS (must match the spreadsheet) =================
+const RATE = 0.05, DAYCOUNT = 360, FWD = 3000;
+function principalDue(eom, bal) {
+  if (eom < new Date(2025, 11, 1)) return 0;
+  let due;
+  if (eom <= new Date(2025, 11, 31)) due = 1000;       // Dec 2025
+  else if (eom <= new Date(2026, 0, 31)) due = 2000;   // Jan 2026
+  else if (eom <= new Date(2026, 1, 29)) due = 2000;   // Feb 2026
+  else due = FWD;                                       // Mar 2026 →
+  return Math.min(due, bal);
+}
+// ===========================================================================
+
+const fmt = n => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+const fmt0 = n => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+const fmtM = d => d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+const fmtMlong = d => d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+const fmtD = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const eomOf = (y, m) => new Date(y, m + 1, 0);
+const r2 = x => Math.round(x * 100) / 100;
+
+const DEFAULT_SRC = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSfdIcnE4Eklj4yq1BD6F8oyzzku4dppR1v5T8n65BUJTAWrvUXv_6mmaamARItss4qlDzMQN-8d3ds/pub?gid=2079835060&single=true&output=csv";
+function getSrc() {
+  const p = new URLSearchParams(location.search).get("src");
+  if (p) { try { localStorage.setItem("loan_csv_src", p); } catch(e){} return p; }
+  try { const s = localStorage.getItem("loan_csv_src"); if (s) return s; } catch(e){}
+  return DEFAULT_SRC;
+}
+function saveSrc() {
+  const v = document.getElementById("srcInput").value.trim();
+  if (!v) return;
+  try { localStorage.setItem("loan_csv_src", v); } catch(e){}
+  location.reload();
+}
+function resetSrc() { try { localStorage.removeItem("loan_csv_src"); } catch(e){} location.href = location.pathname; }
+
+function parseCSV(text) {
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i+1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ",") { row.push(cur); cur = ""; }
+    else if (ch === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (ch !== "\r") cur += ch;
+  }
+  if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+const toNum = s => { const n = parseFloat(String(s ?? "").replace(/[$,\s]/g, "").replace(/^\((.*)\)$/, "-$1")); return isNaN(n) ? 0 : n; };
+function toDate(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);   if (m) return new Date(+m[3], +m[1]-1, +m[2]);
+  const d = new Date(s); return isNaN(d) ? null : d;
+}
+function extractFromCSV(rows) {
+  const loans = [], txns = []; let section = "";
+  for (const row of rows) {
+    const a = (row[0] || "").toUpperCase();
+    if (a.includes("LOANS DISBURSED")) { section = "loans"; continue; }
+    if (a.includes("PAYMENT TRANSACTIONS")) { section = "pay"; continue; }
+    if (a.includes("TOTAL") || a === "DATE") continue;
+    const d = toDate(row[0]); if (!d) continue;
+    if (section === "loans") loans.push({ date: d, amount: toNum(row[1]), desc: row[2] || "" });
+    else if (section === "pay") txns.push({ date: d, p: toNum(row[1]), i: toNum(row[2]), memo: row[4] || "" });
+  }
+  return { loans, txns };
+}
+function fromEmbedded() {
+  return {
+    loans: EMBEDDED.loans.map(([d, a, x]) => ({ date: toDate(d), amount: a, desc: x })),
+    txns: EMBEDDED.txns.map(([d, p, i, x]) => ({ date: toDate(d), p, i, memo: x })),
+  };
+}
+
+function compute({ loans, txns }) {
+  const today = new Date();
+  const curEom = eomOf(today.getFullYear(), today.getMonth());
+  const first = loans.map(l => l.date).sort((a, b) => a - b)[0];
+  if (!first) throw new Error("No loan data");
+
+  const byMonth = {};
+  for (const t of txns) {
+    const k = t.date.getFullYear() + "-" + t.date.getMonth();
+    (byMonth[k] = byMonth[k] || { p: 0, i: 0 }).p += t.p;
+    byMonth[k].i += t.i;
+  }
+
+  const rows = [];
+  let bal = 0, priorAcc = 0, overI = 0, overP = 0;
+  let prevOverI = 0, prevOverP = 0;               // state at end of PREVIOUS month (actuals)
+  let curActP = 0, curActI = 0, curPrDue = 0, curIntDue = 0;
+  let y = first.getFullYear(), m = first.getMonth();
+  let payoff = null, lastIntMonth = null;
+
+  for (let n = 0; n < 120; n++) {
+    const eom = eomOf(y, m), som = new Date(y, m, 1), k = y + "-" + m;
+    const isPast = eom < curEom, isCur = eom.getTime() === curEom.getTime();
+
+    let newLoan = 0, partial = 0;
+    for (const l of loans) if (l.date >= som && l.date <= eom) {
+      newLoan += l.amount;
+      partial += l.amount * RATE / DAYCOUNT * Math.floor((eom - l.date) / 864e5);
+    }
+    const begin = bal;
+    const acc = begin * RATE / 12 + partial;
+    const intDue = Math.max(0, priorAcc + overI);
+    const prDue = principalDue(eom, begin + newLoan);
+    const act = byMonth[k] || { p: 0, i: 0 };
+
+    let prPaid, intPaid, future = !isPast && !isCur;
+    if (isPast) { prPaid = Math.min(act.p, begin + newLoan); intPaid = act.i; }
+    else if (isCur) {
+      prevOverP = overP; prevOverI = overI;
+      curActP = Math.min(act.p, begin + newLoan); curActI = act.i;
+      curPrDue = prDue; curIntDue = intDue;
+      prPaid = Math.min(begin + newLoan, Math.max(curActP, Math.max(0, overP + prDue)));
+      intPaid = intDue > 0.01 ? intDue : act.i;
+    } else {
+      prPaid = Math.min(FWD, begin + newLoan);
+      intPaid = intDue > 0.01 ? intDue : 0;
+    }
+
+    const end = r2(Math.max(0, begin + newLoan - prPaid));
+    const nOverI = r2(priorAcc + overI - intPaid);
+    const nOverP = r2(overP + prDue - prPaid);
+
+    rows.push({ eom, begin: r2(begin), newLoan, acc: r2(acc), intDue: r2(intDue), prDue: r2(prDue),
+                prPaid: r2(prPaid), intPaid: r2(intPaid), end, isCur, future,
+                overP: nOverP, overI: nOverI });
+
+    if (prPaid > 0.01) payoff = eom;
+    if (intPaid > 0.01) lastIntMonth = eom;
+    bal = end; priorAcc = r2(acc); overI = nOverI; overP = nOverP;
+    if (future && end === 0 && intPaid === 0 && intDue === 0) break;
+    m++; if (m > 11) { m = 0; y++; }
+  }
+
+  // remaining THIS month (net of what's already been paid)
+  const remP = r2(Math.max(0, Math.max(0, prevOverP) + curPrDue - curActP));
+  const remI = r2(Math.max(0, curIntDue - curActI));      // curIntDue already includes prior carry
+  const carryInI = r2(Math.max(0, prevOverI));            // portion of interest due that's carryover
+  const totP = txns.reduce((s, t) => s + t.p, 0);
+  const totI = txns.reduce((s, t) => s + t.i, 0);
+  const totLoans = loans.reduce((s, l) => s + l.amount, 0);
+  const curRow = rows.find(r => r.isCur);
+  const nextRow = rows[rows.indexOf(curRow) + 1] || null;
+  const balNow = r2(curRow ? curRow.begin + curRow.newLoan - Math.min(curActP, curRow.begin + curRow.newLoan) : 0);
+  const monthsToGo = payoff ? (payoff.getFullYear() - curEom.getFullYear()) * 12 + (payoff.getMonth() - curEom.getMonth()) : null;
+
+  return { rows, loans, txns, curEom, curRow, nextRow, remP, remI, carryInI,
+           prevOverP: r2(Math.max(0, prevOverP)), prevOverI: r2(Math.max(0, prevOverI)),
+           aheadP: r2(Math.max(0, -prevOverP)), curActP: r2(curActP), curActI: r2(curActI),
+           totP, totI, totLoans, balNow, payoff, lastIntMonth, monthsToGo };
+}
+
+function render(d, srcLabel) {
+  const app = document.getElementById("app");
+  const remTotal = r2(d.remP + d.remI);
+  const allSet = remTotal <= 0.01;
+  const dueDate = fmtD(d.curEom);
+  const pct = Math.min(100, Math.round(d.totP / d.totLoans * 100));
+
+  const heroBig = allSet
+    ? "All set for " + fmtMlong(d.curEom).split(" ")[0]
+    : fmt(remTotal);
+  const heroLabel = allSet ? "Nothing more due this month" : "Still due by " + dueDate;
+
+  app.innerHTML = `
+    <div class="hero">
+      <span class="pill ${allSet ? "ok" : "warn"}">${allSet ? "✓ Fully current" : "Payment needed"}</span>
+      <div class="label">${heroLabel}</div>
+      <div class="big">${heroBig}</div>
+      ${allSet && d.nextRow ? '<div class="duedate">Next: ' + fmt(r2(d.nextRow.prPaid + d.nextRow.intPaid)) + " due by " + fmtD(d.nextRow.eom) + "</div>" : '<div class="duedate"></div>'}
+      <div class="breakline"><span class="l">Principal this month (${fmt0(d.curRow ? d.curRow.prDue : 0)} due${d.prevOverP > 0.01 ? " + " + fmt0(d.prevOverP) + " overdue" : ""})</span>
+        <span class="r">${d.remP <= 0.01 ? '<span class="check">✓ paid</span>' : fmt(d.remP) + " remaining"}</span></div>
+      <div class="breakline"><span class="l">Interest this month${d.carryInI > 0.01 ? " (incl. " + fmt(d.carryInI) + " carried over)" : ""}</span>
+        <span class="r">${d.remI <= 0.01 ? '<span class="check">✓ paid</span>' : fmt(d.remI) + " remaining"}</span></div>
+      ${d.aheadP > 0.01 ? '<div class="breakline"><span class="l">Principal cushion (paid ahead of schedule)</span><span class="r">' + fmt(d.aheadP) + "</span></div>" : ""}
+    </div>
+
+    <div class="balcard">
+      <div class="k">Remaining balance</div>
+      <div class="v">${fmt(d.balNow)}</div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      <div class="barlabel"><span>${fmt0(d.totP)} repaid (${pct}%)</span><span>${fmt0(d.totLoans)} borrowed</span></div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><div class="k">Paid off by (on schedule)</div>
+        <div class="v">${d.payoff ? fmtMlong(d.payoff) : "—"}</div>
+        <div class="s">${d.monthsToGo != null ? d.monthsToGo + " months to go · final interest " + fmtM(d.lastIntMonth) : ""}</div></div>
+      <div class="card"><div class="k">Monthly plan</div>
+        <div class="v">${fmt0(FWD)} + interest</div>
+        <div class="s">interest declines as balance falls</div></div>
+      <div class="card"><div class="k">Interest paid to date</div><div class="v">${fmt(d.totI)}</div>
+        <div class="s">5.00% annual rate</div></div>
+      <div class="card"><div class="k">Total paid to date</div><div class="v">${fmt(r2(d.totP + d.totI))}</div>
+        <div class="s">${d.txns.length} payments recorded</div></div>
+    </div>
+
+    <h2>Loans disbursed</h2>
+    ${d.loans.map(l => `
+      <div class="loanrow">
+        <div><strong>${fmt0(l.amount)}</strong><div class="desc">${l.desc}</div></div>
+        <div class="desc">${fmtD(l.date)}</div>
+      </div>`).join("")}
+
+    <h2>All payments (${d.txns.length})</h2>
+    <div class="tablebox"><table>
+      <tr><th>Date</th><th>Amount</th><th>Type</th></tr>
+      ${d.txns.slice().sort((a, b) => b.date - a.date).map(t => `
+        <tr>
+          <td>${fmtD(t.date)}</td>
+          <td>${fmt(r2(t.p + t.i))}</td>
+          <td>${t.p > 0.005 ? '<span class="tag p">principal ' + fmt0(t.p) + "</span>" : ""}${t.i > 0.005 ? '<span class="tag i">interest ' + fmt(t.i) + "</span>" : ""}</td>
+        </tr>`).join("")}
+    </table></div>
+
+    <h2>Payment history — month by month</h2>
+    <div class="tablebox"><table>
+      <tr><th>Month</th><th>Due</th><th>Paid</th><th>Behind at month-end</th><th>Balance</th></tr>
+      ${d.rows.filter(r => !r.isCur && !r.future).map(r => {
+        const due = r2(r.prDue + r.intDue), paid = r2(r.prPaid + r.intPaid);
+        const behind = r2(Math.max(0, r.overP) + Math.max(0, r.overI));
+        const aheadP = r2(Math.max(0, -r.overP));
+        const behindBits = [];
+        if (r.overP > 0.005) behindBits.push("principal " + fmt(r.overP));
+        if (r.overI > 0.005) behindBits.push("interest " + fmt(r.overI));
+        return `
+        <tr>
+          <td>${fmtM(r.eom)}${r.newLoan > 0 ? '<div class="cellmemo">new loan: ' + fmt0(r.newLoan) + "</div>" : ""}</td>
+          <td>${due > 0.005 ? fmt(due) + '<span class="cellmemo">' + (r.prDue > 0.005 ? "P " + fmt0(r.prDue) : "") + (r.prDue > 0.005 && r.intDue > 0.005 ? " · " : "") + (r.intDue > 0.005 ? "I " + fmt(r.intDue) : "") + "</span>" : "—"}</td>
+          <td>${paid > 0.005 ? fmt(paid) + '<span class="cellmemo">' + (r.prPaid > 0.005 ? "P " + fmt0(r.prPaid) : "") + (r.prPaid > 0.005 && r.intPaid > 0.005 ? " · " : "") + (r.intPaid > 0.005 ? "I " + fmt(r.intPaid) : "") + "</span>" : "—"}</td>
+          <td>${behind > 0.005
+                ? '<span class="behind">' + fmt(behind) + '</span><span class="cellmemo">' + behindBits.join(" · ") + (aheadP > 0.005 ? ' · <span class="ahead">P ' + fmt0(aheadP) + " ahead</span>" : "") + "</span>"
+                : '<span class="ok">✓ current</span>' + (aheadP > 0.005 ? '<span class="cellmemo"><span class="ahead">P ' + fmt0(aheadP) + " ahead of schedule</span></span>" : "")}</td>
+          <td>${fmt0(r.end)}</td>
+        </tr>`;
+      }).join("")}
+    </table></div>
+
+    <div class="planbar">The plan — ${fmtMlong(d.curEom)} onward
+      <span class="s">Assumes ${fmt0(FWD)}/month + all interest due, paid on time. Updates automatically from today's date.</span>
+    </div>
+    <div class="tablebox"><table>
+      <tr><th>Month</th><th>Payment</th><th>Balance after</th></tr>
+      ${d.rows.filter(r => r.isCur || r.future).map(r => {
+        if (r.isCur) {
+          const rem = r2(d.remP + d.remI);
+          const paidSoFar = r2(d.curActP + d.curActI);
+          return `
+        <tr class="now">
+          <td>${fmtM(r.eom)} ← this month${r.newLoan > 0 ? '<div class="cellmemo">new loan: ' + fmt0(r.newLoan) + "</div>" : ""}</td>
+          <td>${rem > 0.005
+                ? fmt(rem) + ' still needed<span class="cellmemo">' + (d.remP > 0.005 ? "P " + fmt(d.remP) : "") + (d.remP > 0.005 && d.remI > 0.005 ? " · " : "") + (d.remI > 0.005 ? "I " + fmt(d.remI) : "") + (paidSoFar > 0.005 ? " · already paid " + fmt(paidSoFar) : "") + "</span>"
+                : '<span class="ok">✓ paid in full</span>' + (paidSoFar > 0.005 ? '<span class="cellmemo">' + fmt(paidSoFar) + " received</span>" : "")}</td>
+          <td>${fmt0(r.end)}</td>
+        </tr>`;
+        }
+        const pmt = r2(r.prPaid + r.intPaid);
+        return `
+        <tr class="proj">
+          <td>${fmtM(r.eom)}</td>
+          <td>${pmt > 0.005 ? fmt(pmt) + '<span class="cellmemo">' + (r.prPaid > 0.005 ? "P " + fmt0(r.prPaid) : "") + (r.prPaid > 0.005 && r.intPaid > 0.005 ? " · " : "") + (r.intPaid > 0.005 ? "I " + fmt(r.intPaid) : "") + "</span>" : "—"}</td>
+          <td>${fmt0(r.end)}</td>
+        </tr>`;
+      }).join("")}
+    </table></div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:8px">
+      In the history table, "Behind at month-end" shows exactly what was still owed when that month closed; a green ✓ means the month closed fully current.
+      The plan's first row is this month's remaining need; every later row assumes on-time payments.
+    </div>`;
+
+  document.getElementById("srcinfo").textContent = srcLabel;
+}
+
+
+// ===================== ADMIN =====================
+// Gate credentials (SHA-256 of "user:pass"). Default: admin / loan2026
+// This deters casual access; it is NOT strong security (page source is public).
+const ADMIN_HASH = "92522372a3f9d988dd31aadc4a0fe2e082606b05b80b2bc9a44e354f956f60b1";
+const PENDING_KEY = "loan_pending_payments";
+
+async function sha256(s) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+function getPending() { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); } catch(e) { return []; } }
+function setPending(a) { try { localStorage.setItem(PENDING_KEY, JSON.stringify(a)); } catch(e){} updateBadge(); }
+function updateBadge() {
+  const n = getPending().length, el = document.getElementById("pendBadge");
+  if (el) { el.style.display = n ? "inline-block" : "none"; el.textContent = n; }
+}
+function isAuthed() { try { return sessionStorage.getItem("loan_admin") === "1"; } catch(e) { return false; } }
+
+function adminOpen() { isAuthed() ? showPanel() : showLogin(); }
+function adminClose() { document.getElementById("adminModal").style.display = "none"; }
+
+function showLogin(err) {
+  const m = document.getElementById("adminModal");
+  m.style.display = "block";
+  m.innerHTML = `<div class="modal" onclick="adminClose()"><div class="panel" onclick="event.stopPropagation()">
+    <h3>Admin sign-in</h3>
+    ${err ? '<div class="err">' + err + "</div>" : ""}
+    <label>Username</label><input id="au" autocomplete="off" />
+    <label>Password</label><input id="ap" type="password" />
+    <div class="btnrow"><button class="btn2" onclick="adminClose()">Cancel</button>
+    <button class="btn1" onclick="doLogin()">Sign in</button></div>
+    <div class="pubbox">Note: this gate keeps casual visitors out of the admin screen. It is not bank-grade security — the loan data on this page is visible to anyone with the link either way.</div>
+  </div></div>`;
+  document.getElementById("au").focus();
+}
+async function doLogin() {
+  const u = document.getElementById("au").value.trim(), p = document.getElementById("ap").value;
+  if (await sha256(u + ":" + p) === ADMIN_HASH) {
+    try { sessionStorage.setItem("loan_admin", "1"); } catch(e){}
+    showPanel();
+  } else showLogin("Wrong username or password.");
+}
+
+function showPanel(msg) {
+  const pend = getPending();
+  const m = document.getElementById("adminModal");
+  m.style.display = "block";
+  const today = new Date().toISOString().slice(0, 10);
+  m.innerHTML = `<div class="modal" onclick="adminClose()"><div class="panel" onclick="event.stopPropagation()">
+    <h3>Add a payment</h3>
+    ${msg ? '<div class="pubbox">' + msg + "</div>" : ""}
+    <label>Date</label><input id="pd" type="date" value="${today}" />
+    <label>Principal amount ($)</label><input id="pp" type="number" step="0.01" placeholder="0.00" />
+    <label>Interest amount ($)</label><input id="pi" type="number" step="0.01" placeholder="0.00" />
+    <label>Memo (optional)</label><input id="pm" placeholder="e.g. Principal — Zelle" />
+    <div class="btnrow"><button class="btn2" onclick="adminClose()">Close</button>
+    <button class="btn1" onclick="addPayment()">Add payment</button></div>
+    ${pend.length ? `
+      <h3 style="margin-top:20px">Pending — visible only on this device (${pend.length})</h3>
+      ${pend.map((t, i) => `<div class="pend"><span>${t[0]} · P ${t[1]} · I ${t[2]}${t[3] ? " · " + t[3] : ""}</span><button onclick="rmPending(${i})">remove</button></div>`).join("")}
+      <div class="pubbox"><b>Publish so Patty &amp; David see them:</b><br>
+      1. <a href="#" onclick="downloadUpdated();return false;">Download the updated site file</a> (index.html with these payments baked in)<br>
+      2. Replace index.html on GitHub (repo → the file → pencil icon isn't needed: use "Add file → Upload files" and overwrite) — or paste the data block:<br>
+      <a href="#" onclick="showBlock();return false;">Show copy-paste data block instead</a>
+      <div id="blockOut"></div></div>` : ""}
+  </div></div>`;
+}
+function addPayment() {
+  const d = document.getElementById("pd").value;
+  const p = parseFloat(document.getElementById("pp").value) || 0;
+  const i = parseFloat(document.getElementById("pi").value) || 0;
+  const memo = document.getElementById("pm").value.trim();
+  if (!d || (p <= 0 && i <= 0)) { showPanel("Enter a date and at least one amount."); return; }
+  const pend = getPending();
+  pend.push([d, p, i, memo]);
+  setPending(pend);
+  showPanel("Added. It shows on this device now — publish below to make it visible to everyone.");
+  refreshView();
+}
+function rmPending(i) { const p = getPending(); p.splice(i, 1); setPending(p); showPanel(); refreshView(); }
+
+function mergedEmbedded() {
+  const base = fromEmbedded();
+  for (const [d, p, i, memo] of getPending()) base.txns.push({ date: toDate(d), p, i, memo });
+  base.txns.sort((a, b) => a.date - b.date);
+  return base;
+}
+function buildNewDataBlock() {
+  const txns = EMBEDDED.txns.concat(getPending()).sort((a, b) => a[0] < b[0] ? -1 : 1);
+  const asOf = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const j = o => JSON.stringify(o);
+  return '/*DATA-START*/\nconst EMBEDDED_AS_OF = ' + j(asOf) + ';\nconst EMBEDDED = {\n  loans: [\n' +
+    EMBEDDED.loans.map(l => "    " + j(l) + ",").join("\n") +
+    "\n  ],\n  txns: [\n" +
+    txns.map(t => "    " + j(t) + ",").join("\n") +
+    "\n  ],\n};\n/*DATA-END*/";
+}
+function showBlock() {
+  document.getElementById("blockOut").innerHTML =
+    '<div style="font-size:11px;margin-top:6px">Replace everything between /*DATA-START*/ and /*DATA-END*/ in index.html with:</div>' +
+    '<textarea class="blk" onclick="this.select()">' + buildNewDataBlock().replace(/</g, "&lt;") + "</textarea>";
+}
+async function downloadUpdated() {
+  try {
+    const res = await fetch(location.href.split("#")[0].split("?")[0], { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    let src = await res.text();
+    const re = /\/\*DATA-START\*\/[\s\S]*?\/\*DATA-END\*\//;
+    if (!re.test(src)) throw new Error("markers not found");
+    src = src.replace(re, buildNewDataBlock());
+    const blob = new Blob([src], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "index.html";
+    a.click();
+    showPanel("Downloaded index.html with all payments baked in. Upload it to GitHub to publish. After it's live, tap 'clear pending' — <a href='#' onclick='clearPending();return false;'>clear pending now</a> if you've uploaded.");
+  } catch (e) {
+    showBlock();
+    showPanel("Direct download only works when the site is hosted (not from a local file). Use the copy-paste data block below instead. (" + e.message + ")");
+  }
+}
+function clearPending() { setPending([]); showPanel("Pending cleared."); refreshView(); }
+// =================================================
+
+async function main() {
+  const src = getSrc();
+  let data, label;
+  if (src) {
+    try {
+      const res = await fetch(src, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      if (text.trim().startsWith("<")) throw new Error("not CSV");
+      data = extractFromCSV(parseCSV(text));
+      if (!data.loans.length || !data.txns.length) throw new Error("empty");
+      label = "Live from Google Sheet";
+    } catch (e) {
+      data = fromEmbedded();
+      label = "Built-in data (live feed unavailable: " + e.message + ")";
+    }
+  } else {
+    data = mergedEmbedded();
+    const np = getPending().length;
+    label = "Data as of " + EMBEDDED_AS_OF + (np ? " + " + np + " unpublished on this device" : "");
+  }
+  document.getElementById("asof").textContent =
+    "As of " + new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  try { render(compute(data), label); }
+  catch (e) { document.getElementById("app").innerHTML = '<div class="err">Error: ' + e.message + "</div>"; }
+}
+function refreshView() { main(); }
+main();
+updateBadge();
+</script>
+</body>
+</html>
