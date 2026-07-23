@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
 <title>Loan Status</title>
 <style>
   :root {
@@ -74,26 +75,6 @@
   details input { width: 100%; padding: 9px; font-size: 12.5px; border: 1px solid var(--border); border-radius: 8px; margin: 8px 0; }
   details button { padding: 8px 14px; font-size: 13px; font-weight: 600; background: var(--navy); color: #fff; border: none; border-radius: 8px; cursor: pointer; }
 
-  /* Admin */
-  .adminbar { position: fixed; bottom: 14px; right: 14px; }
-  .adminbtn { background: var(--navy); color: #fff; border: none; border-radius: 24px; padding: 10px 16px;
-              font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-  .badge { background: #d97706; color: #fff; border-radius: 10px; font-size: 11px; padding: 1px 7px; margin-left: 6px; }
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: flex-start;
-           justify-content: center; padding: 30px 14px; z-index: 50; overflow-y: auto; }
-  .panel { background: var(--card); border-radius: var(--radius); padding: 20px; max-width: 460px; width: 100%; }
-  .panel h3 { margin: 0 0 12px; font-size: 16px; color: var(--navy); }
-  .panel label { display: block; font-size: 12px; color: var(--text2); margin: 10px 0 4px; }
-  .panel input { width: 100%; padding: 9px 10px; font-size: 14px; border: 1px solid var(--border); border-radius: 8px; }
-  .panel .btnrow { display: flex; gap: 8px; margin-top: 16px; }
-  .panel button { flex: 1; padding: 10px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; }
-  .btn1 { background: var(--navy); color: #fff; border: none; }
-  .btn2 { background: transparent; color: var(--text2); border: 1px solid var(--border); }
-  .pend { background: var(--amber-bg); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; margin: 6px 0;
-          display: flex; justify-content: space-between; align-items: center; }
-  .pend button { background: none; border: none; color: #b91c1c; cursor: pointer; font-size: 12px; padding: 2px 6px; }
-  .pubbox { background: var(--navy-light); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--text2); margin-top: 12px; line-height: 1.5; }
-  textarea.blk { width: 100%; height: 110px; font-family: monospace; font-size: 10.5px; margin-top: 6px; }
 
   .planbar { background: var(--navy); color: #fff; border-radius: var(--radius);
              padding: 12px 16px; margin: 26px 0 10px; font-size: 13.5px; font-weight: 600;
@@ -104,10 +85,31 @@
   td .ok { color: var(--green); font-weight: 600; }
   td .behind { color: var(--amber); font-weight: 600; }
   td .ahead { color: var(--green); font-size: 10.5px; }
+
+  #gate { position: fixed; inset: 0; background: var(--bg); z-index: 100;
+          display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .gatecard { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+              padding: 30px 26px; max-width: 340px; width: 100%; text-align: center; }
+  .gatecard h1 { font-size: 20px; margin-bottom: 4px; }
+  .gatecard p { font-size: 13px; color: var(--text2); margin: 0 0 18px; }
+  .gatecard input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--border);
+                    border-radius: 10px; text-align: center; margin-bottom: 12px; }
+  .gatecard button { width: 100%; padding: 12px; font-size: 15px; font-weight: 600;
+                     background: var(--navy); color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+  .gateerr { color: #b91c1c; font-size: 12.5px; margin-top: 10px; min-height: 16px; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div id="gate" style="display:none">
+  <div class="gatecard">
+    <h1>Loan Status</h1>
+    <p>Enter the password to view</p>
+    <input id="gatePw" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')gateTry()" />
+    <button onclick="gateTry()">View</button>
+    <div class="gateerr" id="gateErr"></div>
+  </div>
+</div>
+<div class="wrap" id="mainWrap" style="visibility:hidden">
   <h1>Loan Status</h1>
   <div class="sub" id="asof"></div>
   <div id="app"></div>
@@ -126,10 +128,35 @@
 </div>
 
 
-<div class="adminbar"><button class="adminbtn" onclick="adminOpen()">Admin<span id="pendBadge" class="badge" style="display:none"></span></button></div>
-<div id="adminModal" style="display:none"></div>
 <script>
 "use strict";
+
+// ---- Cover gate (privacy curtain, not security) ----
+const GATE_KEY = "loan_gate_ok";
+function gateTry() {
+  const v = (document.getElementById("gatePw").value || "").trim().toLowerCase();
+  if (v === "patty") {
+    try { localStorage.setItem(GATE_KEY, "1"); } catch(e){}
+    gatePass();
+  } else {
+    document.getElementById("gateErr").textContent = "That's not it — try again.";
+    document.getElementById("gatePw").value = "";
+  }
+}
+function gatePass() {
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("mainWrap").style.visibility = "visible";
+}
+(function () {
+  let ok = false;
+  try { ok = localStorage.getItem(GATE_KEY) === "1"; } catch(e){}
+  if (ok) gatePass();
+  else {
+    document.getElementById("gate").style.display = "flex";
+    setTimeout(() => document.getElementById("gatePw").focus(), 50);
+  }
+})();
+
 
 // ================= EMBEDDED DATA (auto-used when no live feed is connected) =================
 /*DATA-START*/
@@ -445,129 +472,6 @@ function render(d, srcLabel) {
 }
 
 
-// ===================== ADMIN =====================
-// Gate credentials (SHA-256 of "user:pass"). Default: admin / loan2026
-// This deters casual access; it is NOT strong security (page source is public).
-const ADMIN_HASH = "92522372a3f9d988dd31aadc4a0fe2e082606b05b80b2bc9a44e354f956f60b1";
-const PENDING_KEY = "loan_pending_payments";
-
-async function sha256(s) {
-  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
-}
-function getPending() { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); } catch(e) { return []; } }
-function setPending(a) { try { localStorage.setItem(PENDING_KEY, JSON.stringify(a)); } catch(e){} updateBadge(); }
-function updateBadge() {
-  const n = getPending().length, el = document.getElementById("pendBadge");
-  if (el) { el.style.display = n ? "inline-block" : "none"; el.textContent = n; }
-}
-function isAuthed() { try { return sessionStorage.getItem("loan_admin") === "1"; } catch(e) { return false; } }
-
-function adminOpen() { isAuthed() ? showPanel() : showLogin(); }
-function adminClose() { document.getElementById("adminModal").style.display = "none"; }
-
-function showLogin(err) {
-  const m = document.getElementById("adminModal");
-  m.style.display = "block";
-  m.innerHTML = `<div class="modal" onclick="adminClose()"><div class="panel" onclick="event.stopPropagation()">
-    <h3>Admin sign-in</h3>
-    ${err ? '<div class="err">' + err + "</div>" : ""}
-    <label>Username</label><input id="au" autocomplete="off" />
-    <label>Password</label><input id="ap" type="password" />
-    <div class="btnrow"><button class="btn2" onclick="adminClose()">Cancel</button>
-    <button class="btn1" onclick="doLogin()">Sign in</button></div>
-    <div class="pubbox">Note: this gate keeps casual visitors out of the admin screen. It is not bank-grade security — the loan data on this page is visible to anyone with the link either way.</div>
-  </div></div>`;
-  document.getElementById("au").focus();
-}
-async function doLogin() {
-  const u = document.getElementById("au").value.trim(), p = document.getElementById("ap").value;
-  if (await sha256(u + ":" + p) === ADMIN_HASH) {
-    try { sessionStorage.setItem("loan_admin", "1"); } catch(e){}
-    showPanel();
-  } else showLogin("Wrong username or password.");
-}
-
-function showPanel(msg) {
-  const pend = getPending();
-  const m = document.getElementById("adminModal");
-  m.style.display = "block";
-  const today = new Date().toISOString().slice(0, 10);
-  m.innerHTML = `<div class="modal" onclick="adminClose()"><div class="panel" onclick="event.stopPropagation()">
-    <h3>Add a payment</h3>
-    ${msg ? '<div class="pubbox">' + msg + "</div>" : ""}
-    <label>Date</label><input id="pd" type="date" value="${today}" />
-    <label>Principal amount ($)</label><input id="pp" type="number" step="0.01" placeholder="0.00" />
-    <label>Interest amount ($)</label><input id="pi" type="number" step="0.01" placeholder="0.00" />
-    <label>Memo (optional)</label><input id="pm" placeholder="e.g. Principal — Zelle" />
-    <div class="btnrow"><button class="btn2" onclick="adminClose()">Close</button>
-    <button class="btn1" onclick="addPayment()">Add payment</button></div>
-    ${pend.length ? `
-      <h3 style="margin-top:20px">Pending — visible only on this device (${pend.length})</h3>
-      ${pend.map((t, i) => `<div class="pend"><span>${t[0]} · P ${t[1]} · I ${t[2]}${t[3] ? " · " + t[3] : ""}</span><button onclick="rmPending(${i})">remove</button></div>`).join("")}
-      <div class="pubbox"><b>Publish so Patty &amp; David see them:</b><br>
-      1. <a href="#" onclick="downloadUpdated();return false;">Download the updated site file</a> (index.html with these payments baked in)<br>
-      2. Replace index.html on GitHub (repo → the file → pencil icon isn't needed: use "Add file → Upload files" and overwrite) — or paste the data block:<br>
-      <a href="#" onclick="showBlock();return false;">Show copy-paste data block instead</a>
-      <div id="blockOut"></div></div>` : ""}
-  </div></div>`;
-}
-function addPayment() {
-  const d = document.getElementById("pd").value;
-  const p = parseFloat(document.getElementById("pp").value) || 0;
-  const i = parseFloat(document.getElementById("pi").value) || 0;
-  const memo = document.getElementById("pm").value.trim();
-  if (!d || (p <= 0 && i <= 0)) { showPanel("Enter a date and at least one amount."); return; }
-  const pend = getPending();
-  pend.push([d, p, i, memo]);
-  setPending(pend);
-  showPanel("Added. It shows on this device now — publish below to make it visible to everyone.");
-  refreshView();
-}
-function rmPending(i) { const p = getPending(); p.splice(i, 1); setPending(p); showPanel(); refreshView(); }
-
-function mergedEmbedded() {
-  const base = fromEmbedded();
-  for (const [d, p, i, memo] of getPending()) base.txns.push({ date: toDate(d), p, i, memo });
-  base.txns.sort((a, b) => a.date - b.date);
-  return base;
-}
-function buildNewDataBlock() {
-  const txns = EMBEDDED.txns.concat(getPending()).sort((a, b) => a[0] < b[0] ? -1 : 1);
-  const asOf = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const j = o => JSON.stringify(o);
-  return '/*DATA-START*/\nconst EMBEDDED_AS_OF = ' + j(asOf) + ';\nconst EMBEDDED = {\n  loans: [\n' +
-    EMBEDDED.loans.map(l => "    " + j(l) + ",").join("\n") +
-    "\n  ],\n  txns: [\n" +
-    txns.map(t => "    " + j(t) + ",").join("\n") +
-    "\n  ],\n};\n/*DATA-END*/";
-}
-function showBlock() {
-  document.getElementById("blockOut").innerHTML =
-    '<div style="font-size:11px;margin-top:6px">Replace everything between /*DATA-START*/ and /*DATA-END*/ in index.html with:</div>' +
-    '<textarea class="blk" onclick="this.select()">' + buildNewDataBlock().replace(/</g, "&lt;") + "</textarea>";
-}
-async function downloadUpdated() {
-  try {
-    const res = await fetch(location.href.split("#")[0].split("?")[0], { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    let src = await res.text();
-    const re = /\/\*DATA-START\*\/[\s\S]*?\/\*DATA-END\*\//;
-    if (!re.test(src)) throw new Error("markers not found");
-    src = src.replace(re, buildNewDataBlock());
-    const blob = new Blob([src], { type: "text/html" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "index.html";
-    a.click();
-    showPanel("Downloaded index.html with all payments baked in. Upload it to GitHub to publish. After it's live, tap 'clear pending' — <a href='#' onclick='clearPending();return false;'>clear pending now</a> if you've uploaded.");
-  } catch (e) {
-    showBlock();
-    showPanel("Direct download only works when the site is hosted (not from a local file). Use the copy-paste data block below instead. (" + e.message + ")");
-  }
-}
-function clearPending() { setPending([]); showPanel("Pending cleared."); refreshView(); }
-// =================================================
 
 async function main() {
   const src = getSrc();
@@ -586,18 +490,15 @@ async function main() {
       label = "Built-in data (live feed unavailable: " + e.message + ")";
     }
   } else {
-    data = mergedEmbedded();
-    const np = getPending().length;
-    label = "Data as of " + EMBEDDED_AS_OF + (np ? " + " + np + " unpublished on this device" : "");
+    data = fromEmbedded();
+    label = "Data as of " + EMBEDDED_AS_OF;
   }
   document.getElementById("asof").textContent =
     "As of " + new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   try { render(compute(data), label); }
   catch (e) { document.getElementById("app").innerHTML = '<div class="err">Error: ' + e.message + "</div>"; }
 }
-function refreshView() { main(); }
 main();
-updateBadge();
 </script>
 </body>
 </html>
